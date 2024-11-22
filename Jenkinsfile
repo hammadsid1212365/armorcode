@@ -1,61 +1,57 @@
 pipeline {
     agent any
+
     environment {
-        DOCKER_IMAGE = 'your-docker-image-name'
-        DOCKER_REGISTRY = 'your-docker-registry-url'
-        DEPLOY_SERVER = 'remote-server-ip'
-        DEPLOY_USER = 'your-deploy-user'
+        // Define environment variables for GitHub and Docker
+        DOCKER_IMAGE_NAME = "myapp"
+        GIT_REPO_URL = "https://github.com/your-username/your-repository.git"  // GitHub repository URL
     }
+
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
-                echo 'Checking out code...'
-                checkout scm
+                script {
+                    // Checkout the code from GitHub repository using credentials
+                    git credentialsId: 'github-credentials', url: "${GIT_REPO_URL}"
+                }
             }
         }
-        stage('Build') {
+
+        stage('Build Docker Image') {
             steps {
-                echo 'Building the application...'
-                sh 'docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .'
-            }
-        }
-        stage('Test') {
-            steps {
-                echo 'Running tests...'
-                sh 'docker run --rm ${DOCKER_IMAGE}:${BUILD_NUMBER} ./run-tests.sh'
-            }
-        }
-        stage('Push to Registry') {
-            steps {
-                echo 'Pushing the Docker image to the registry...'
-                sh '''
-                    docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${BUILD_NUMBER}
-                    docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${BUILD_NUMBER}
-                '''
-            }
-        }
-        stage('Deploy') {
-            steps {
-                echo 'Deploying the application...'
-                sshagent(['your-ssh-credentials-id']) {
+                script {
+                    // Build the Docker image
                     sh '''
-                        ssh ${DEPLOY_USER}@${DEPLOY_SERVER} "
-                        docker pull ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${BUILD_NUMBER} &&
-                        docker stop app-container || true &&
-                        docker rm app-container || true &&
-                        docker run -d --name app-container -p 80:80 ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${BUILD_NUMBER}
-                        "
+                    docker build -t ${DOCKER_IMAGE_NAME}:latest .
                     '''
                 }
             }
         }
+
+        stage('Push Docker Image to Registry') {
+            steps {
+                script {
+                    // If pushing to Docker registry (optional)
+                    withDockerRegistry([credentialsId: 'dockerhub-credentials', url: 'https://index.docker.io/v1/']) {
+                        sh '''
+                        docker tag ${DOCKER_IMAGE_NAME}:latest ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:latest
+                        docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:latest
+                        '''
+                    }
+                }
+            }
+        }
     }
+
     post {
+        always {
+            cleanWs()  // Clean workspace after the build
+        }
         success {
-            echo 'Pipeline completed successfully!'
+            echo 'Docker image built and pushed successfully!'
         }
         failure {
-            echo 'Pipeline failed!'
+            echo 'Build failed.'
         }
     }
 }
