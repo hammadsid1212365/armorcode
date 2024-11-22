@@ -1,26 +1,18 @@
-# Use the official Jenkins base image
-FROM jenkins/jenkins:lts
+# Use a base image that includes Git
+FROM ubuntu:20.04
 
-# Set environment variables
-ENV JAVA_OPTS="-Djenkins.install.runSetupWizard=false"
-
-# Install additional tools (e.g., Docker CLI for managing Docker inside Jenkins)
-USER root
+# Install necessary dependencies
 RUN apt-get update && apt-get install -y \
-    docker.io \
     git \
-    && apt-get clean \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Set permissions back to Jenkins user
-USER jenkins
+# Clone the GitHub repository (replace with your repository URL)
+RUN git clone https://github.com/hammadsid1212365/armorcode.git /opt/repository
 
-# Expose Jenkins default port
-EXPOSE 8080
+# Set the working directory to where the repository is cloned
+WORKDIR /opt/repository
 
-# Expose Jenkins agent port
-EXPOSE 50000
-
-# Entry point for Jenkins
-ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/jenkins.sh"]
+# Example: Print a specific file (e.g., README.md)
+CMD cat README.md
 

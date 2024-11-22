@@ -4,7 +4,7 @@ pipeline {
     environment {
         // Define environment variables for GitHub and Docker
         DOCKER_IMAGE_NAME = "myapp"
-        GIT_REPO_URL = "https://github.com/your-username/your-repository.git"  // GitHub repository URL
+        GIT_REPO_URL = "https://github.com/hammadsid1212365/armorcode.git"  // GitHub repository URL
     }
 
     stages {
